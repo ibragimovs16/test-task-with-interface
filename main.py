@@ -1,17 +1,18 @@
 # -*- coding: UTF-8 -*-
 
 import sys
+from os import remove
 
 from PySide2 import QtWidgets, QtGui
 from interface import Ui_TestTaskWindow
 
-from modules.parser import Parser
+from modules.dbHandler import DataBaseHandler
 
 
 class MainWindow(QtWidgets.QMainWindow):
-    parser = Parser()
     current_exam = None
     current_direction = None
+    db = DataBaseHandler()
 
     def __init__(self):
         super(MainWindow, self).__init__()
@@ -24,29 +25,36 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui.direction_combo_box.activated[str].connect(self.direction_cb_changed)
         self.ui.load_btn.clicked.connect(self.load_data)
 
+    def __error(self):
+        QtWidgets.QMessageBox.critical(self, 'Ошибка',
+                                       'Произошла ошибка, подождите немного...',
+                                       QtWidgets.QMessageBox.Ok)
+        self.db.repair()
+
     def load_data(self):
         self.ui.exam_combo_box.clear()
         self.ui.direction_combo_box.clear()
         self.ui.text_box.clear()
 
-        self.parser.load()
+        try:
+            self.current_exam = self.db.get_exams()[0]
+            self.current_direction = self.db.get_directions(self.current_exam)[0]
+            self.ui.text_box.setText(self.db.get_info(self.current_direction)[0])
+        except Exception:
+            self.__error()
 
-        self.current_exam = self.parser.get_exams()[0]
-        self.current_direction = self.parser.get_directions()[0]
-        self.ui.text_box.setText(self.parser.get_info())
-
-        for exam in self.parser.get_exams():
+        for exam in self.db.get_exams():
             self.ui.exam_combo_box.addItem(exam)
 
-        for direction in self.parser.get_directions():
-            self.ui.direction_combo_box.addItem(direction[1])
+        for direction in self.db.get_directions(self.current_exam):
+            self.ui.direction_combo_box.addItem(direction)
 
     def update_cb(self):
         self.ui.direction_combo_box.clear()
         self.ui.text_box.clear()
 
-        for direction in self.parser.get_directions(self.current_exam):
-            self.ui.direction_combo_box.addItem(direction[1])
+        for direction in self.db.get_directions(self.current_exam):
+            self.ui.direction_combo_box.addItem(direction)
 
     def exam_cb_changed(self):
         self.current_exam = self.ui.exam_combo_box.currentText()
@@ -55,12 +63,12 @@ class MainWindow(QtWidgets.QMainWindow):
     def direction_cb_changed(self):
         self.current_direction = self.ui.direction_combo_box.currentText()
 
-        for direction in self.parser.get_directions():
+        for direction in self.db.get_directions(self.current_exam):
             if direction[1] == self.current_direction:
                 self.current_direction = direction
 
-        info = self.parser.get_info(self.current_direction)
-        self.ui.text_box.setText(info)
+        info = self.db.get_info(self.current_direction)
+        self.ui.text_box.setText(info[0])
 
 
 def main():

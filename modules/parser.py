@@ -161,14 +161,20 @@ class Parser:
         free_places = ''
         paid_places = ''
 
-        for i in [0, 1]:
-            soup = BeautifulSoup(str(content[i]), 'lxml')
-
+        if direction[1] == 'ЭКОНОМИКА':
+            free_places = f"Количество бюджетных мест (бесплатных): 0"
+            soup = BeautifulSoup(str(content[0]), 'lxml')
             value = soup.find('div', class_='col-sm-8').text.strip()
-            if i == 0:
-                free_places = f"Количество бюджетных мест (бесплатных): {value}"
-            elif i == 1:
-                paid_places = f"Количество платных мест: {value}"
+            paid_places = f"Количество платных мест: {value}"
+        else:
+            for i in [0, 1]:
+                soup = BeautifulSoup(str(content[i]), 'lxml')
+
+                value = soup.find('div', class_='col-sm-8').text.strip()
+                if i == 0:
+                    free_places = f"Количество бюджетных мест (бесплатных): {value}"
+                elif i == 1:
+                    paid_places = f"Количество платных мест: {value}"
 
         try:
             soup = BeautifulSoup(str(content[5]), 'lxml')
@@ -180,13 +186,15 @@ class Parser:
 
         soup = BeautifulSoup(res, 'lxml')
         data = soup.find_all('script')
-        try:
-            cost = data[2]
-        except Exception:
-            cost = data[1]
+        if direction[1] == 'ЯДЕРНЫЕ ФИЗИКА И ТЕХНОЛОГИИ':
+            cost = data[3]
+        else:
+            try:
+                cost = data[2]
+            except Exception:
+                cost = data[1]
 
         cost = f"Стоимость обучения: {str(cost).split()[4][:-1]}"
-
         result = f'{direction[1]}:\n\n{free_places}\n{paid_places}\n{cost}р\n{passing_score}'
         result += '\n\nПрофили:\n\n'
         for item in about:
